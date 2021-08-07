@@ -3,7 +3,7 @@
 
 common="cd /Users/applestore/Desktop/Garfield/mine/Garfield/tensorflow_impl/applications/AggregaThor"
 common="$common && /usr/local/bin/python3 trainer.py --log True --max_iter 1000 --batch_size 126"
-
+#/usr/local/bin/python3
 #for filename in config/*; do
 #    echo "$filename"
 #    IP=$(echo $filename | cut -c18- | tr -d '\n')

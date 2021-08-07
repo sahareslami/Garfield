@@ -61,9 +61,19 @@ class Server:
         self.train_data, self.test_data = dsm.data_train, dsm.data_test
 
         devices = tf.config.list_physical_devices('gpu')
+
         if len(devices) == 1:
+            '''
+            tf.distribute.OneDeviceStrategy is a strategy to place all variables and computation on a single specified device.
+            '''
             self.strategy = tf.distribute.OneDeviceStrategy()
         elif len(devices) > 1:
+            '''
+            tf.distribute.MirroredStrategy supports synchronous distributed training on multiple GPUs on one machine.
+            It creates one replica per GPU device. Each variable in the model is mirrored across all the replicas.
+            Together, these variables form a single conceptual variable called MirroredVariable.
+            These variables are kept in sync with each other by applying identical updates.
+            '''
             self.strategy = tf.distribute.MirroredStrategy()
         else:
             self.strategy = tf.distribute.get_strategy()
@@ -148,7 +158,11 @@ class Server:
 
     def write_model(self, model):
         """ Build a Keras model from flatten weights. """
+        """
+            tools.reshape_weights(model , flatten_weight):
+                add layers based on second argument
 
+        """
         for l, weights in zip(self.model.trainable_variables, tools.reshape_weights(self.model,model)):
             l.assign(weights.reshape(l.shape))
 

@@ -37,9 +37,10 @@ from tensorflow.keras.optimizers import Adam
 
 from . import garfield_pb2
 from . import tools
+from .seucre_server import Secure_server 
 from .server import Server
 
-class PS(Server):
+class PS(Secure_server):
     """ Parameter Server node, handles the updates of the parameter of the model. """
 
     def __init__(self, network=None, log=False, dataset="mnist", model="Small", batch_size=128, nb_byz_worker= 0):
@@ -72,7 +73,7 @@ class PS(Server):
             counter = 0
             read = False
             while not read:
-                try:
+                try: 
                     response = connection.GetGradient(garfield_pb2.Request(iter=iter,
                                                                         job="ps",
                                                                         req_id=self.task_id))

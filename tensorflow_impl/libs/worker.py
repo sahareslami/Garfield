@@ -36,6 +36,7 @@ import tensorflow as tf
 import numpy as np
 
 from .server import Server
+from .seucre_server import Secure_server
 from . import tools
 
 
@@ -54,7 +55,7 @@ class Worker(Server):
         super().__init__(network, log, dataset, model, batch_size, nb_byz_worker)
 
     def compute_gradients(self, iter):
-        """ Compute gradients.
+        """ Compute gradients.zz
 
             Args:
                 - iter: iteration of the training
