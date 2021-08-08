@@ -160,8 +160,8 @@ def set_connection(host):
         returns:
             Stub
     """
-    print("in secure connection, host name: " , host)
-    channel = grpc.insecure_channel(host, options=[('grpc.max_send_message_length', -1)
+    print("in secure connection, host name: " , 'localhost' + host[-5:])
+    channel = grpc.insecure_channel('localhost' + host[-5:], options=[('grpc.max_send_message_length', -1)
                                     , ('grpc.max_receive_message_length', -1)])
     stub = garfield_pb2_grpc.MessageExchangeStub(channel)
     
@@ -220,22 +220,29 @@ def set_secure_connetion(host , root_certificate , private_key , certificate_cha
             - messageExchangeStub
         
     """
-    call_credentials = grpc.metadata_call_credentials(AuthGateway(private_key= private_key),
-                                                      name='auth gateway')
+    # call_credentials = grpc.metadata_call_credentials(AuthGateway(private_key= private_key),
+                                                    #   name='auth gateway')
     
+    # channel_credential = grpc.ssl_channel_credentials(
+    #     root_certificates = root_certificate,
+    #     private_key = private_key,
+    #     certificate_chain = certificate_chain
+    # )
+
     channel_credential = grpc.ssl_channel_credentials(
-        root_certificates = root_certificate,
-        private_key = private_key,
-        certificate_chain = certificate_chain
+        root_certificates = root_certificate
     )
-
+    options = [
+    ('grpc.ssl_target_name_override' ,  '127.0.0.1') , 
+    ('grpc.default_authority' , '127.0.0.1')
+    ]
     # Combining channel credentials and call credentials together
-    composite_credentials = grpc.composite_channel_credentials(
-        channel_credential,
-        call_credentials,
-    ) 
+    # composite_credentials = grpc.composite_channel_credentials(
+        # channel_credential,
+        # call_credentials,
+    # ) 
 
-    channel = grpc.secure_channel(host, composite_credentials)
+    channel = grpc.secure_channel('localhost' + host[-5:], channel_credential)
     stub = garfield_pb2_grpc.MessageExchangeStub(channel)
     return stub
 

@@ -94,6 +94,7 @@ class Server:
 
         self.m = tf.keras.metrics.Accuracy()
         
+        
         # Define grpc server
         self.service = grpc_message_exchange_servicer.MessageExchangeServicer(tools.flatten_weights(self.model.trainable_variables))
 
@@ -102,14 +103,14 @@ class Server:
             ('grpc.max_receive_message_length', 500 * 1024 * 1024)
         ])
         garfield_pb2_grpc.add_MessageExchangeServicer_to_server(self.service, self.server)
-        self.server.add_insecure_port('[::]:' + str(self.port))
+        self.server.add_insecure_port('localhost:' + str(self.port))
 
         self.aggregated_weights = None
 
         self.loss_fn = SparseCategoricalCrossentropy(from_logits=True)
 
 
-
+    
     def start(self):
         """ Starts the gRPC server. """
 

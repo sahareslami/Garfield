@@ -59,16 +59,17 @@ class AuthorizationValidationInterceptor(grpc.ServerInterceptor):
         self.public_keys = public_keys
 
     def intercept_service(self, continuation, handler_call_details):
+        print("---------------------------------------------hand shake have done succefully--------------------------------------------------")
+        # role = handler_call_details[0][1]
 
-        role = handler_call_details[0][1]
-
-        encoded_request = handler_call_details.invocation_metadata[1][1]
-        decoded_request = jwt.decode(encoded_request , self.public_keys[role] , algorithms="RS256")
-        if decoded_request['request'] == handler_call_details.invocation_metadata[0][1]:
-            return continuation(handler_call_details)
-        else:
-            self._abortion
-        
+        # encoded_request = handler_call_details.invocation_metadata[1][1]
+        # decoded_request = jwt.decode(encoded_request , self.public_keys[role] , algorithms="RS256")
+        # if decoded_request['request'] == handler_call_details.invocation_metadata[0][1]:
+        #     return continuation(handler_call_details)
+        # else:
+        #     self._abortion
+        return continuation(handler_call_details)
+        # else:
         # if decoded_request in handler_call_details.invocation_metadata:
             # return continuation(handler_call_details)
         # else:
@@ -88,10 +89,10 @@ class Secure_server:
         self.nb_byz_worker = nb_byz_worker
         self.batch_size = batch_size
         self.port = network.get_my_port()
-        print("IN PORT HAST" , self.port)
-        self.root_certificate = tools.load_credential_from_file("../rsrcs/credentials/127.0.0.1/:9092.crt")
-        self.private_key = tools.load_credential_from_file("../rsrcs/credentials/127.0.0.1/"+ self.port + ".pem")
-        self.certificate = tools.load_credential_from_file("../rsrcs/credentials/127.0.0.1/"+ self.port + ".crt")
+        # print("IN PORT HAST" , self.port)
+        self.root_certificate = tools.load_credential_from_file("../rsrcs/credentials/root.crt")
+        self.private_key = tools.load_credential_from_file("../rsrcs/credentials/127.0.0.1:"+ self.port + ".pem")
+        self.certificate = tools.load_credential_from_file("../rsrcs/credentials/127.0.0.1:"+ self.port + ".crt")
 
         dsm = DatasetManager(network, dataset, self.batch_size)
         self.train_data, self.test_data = dsm.data_train, dsm.data_test
@@ -139,7 +140,15 @@ class Secure_server:
         # Define grpc server
         self.service = grpc_message_exchange_servicer.MessageExchangeServicer(tools.flatten_weights(self.model.trainable_variables))
 
-        self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=30), interceptors = (AuthorizationValidationInterceptor(public_keys= self.public_keys),),
+        # self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=30), interceptors = (AuthorizationValidationInterceptor(public_keys= self.public_keys),),
+        # options=[
+        #     ('grpc.max_send_message_length', 500 * 1024 * 1024),
+        #     ('grpc.max_receive_message_length', 500 * 1024 * 1024)
+        # ])
+
+
+        self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=30),
+        interceptors = (AuthorizationValidationInterceptor(public_keys= self.public_keys),),
         options=[
             ('grpc.max_send_message_length', 500 * 1024 * 1024),
             ('grpc.max_receive_message_length', 500 * 1024 * 1024)
@@ -147,14 +156,17 @@ class Secure_server:
 
         garfield_pb2_grpc.add_MessageExchangeServicer_to_server(self.service, self.server)
 
-        server_credentials = grpc.ssl_server_credentials(
-            [(self.private_key,
-            _credentials.my_certificate)],
-            root_certificates = _credentials.root_certificate,
-            Required_client_auth = True
-        )
+        server_credentials = grpc.ssl_server_credentials(((
+            self.private_key,
+            self.certificate
+        ),))
+        # server_credentials = grpc.ssl_server_credentials(
+        #     [(self.private_key, self.certificate)],
+        #     root_certificates = self.root_certificate,
+        #     require_client_auth = True)
 
-        self.server.add_secure_port('[::]:' + str(self.port) , server_credentials)
+        print("SERVER ADDRESS ------------------------- " , 'localhost:' + str(self.port))
+        self.server.add_secure_port('localhost:' + str(self.port) , server_credentials)
 
         self.aggregated_weights = None
 
@@ -200,6 +212,8 @@ class Secure_server:
                     models.append(model)
                     read = True
                 except Exception as e:
+                    print("EXCEPTIONNNNNNNNNNNN")
+                    print(e)
                     print("Trying to connect to PS node ", i)
                     time.sleep(5)
                     counter+=1

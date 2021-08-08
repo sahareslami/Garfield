@@ -82,6 +82,8 @@ class PS(Secure_server):
                     gradients.append(gradient)
                     read = True
                 except Exception as e:
+                    print("EXCEPTIONNNN ........")
+                    print(e)
                     print("Trying to connect to Worker node ", i)
                     time.sleep(5)
                     counter+=1

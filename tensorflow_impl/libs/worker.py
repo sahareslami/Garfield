@@ -40,7 +40,7 @@ from .seucre_server import Secure_server
 from . import tools
 
 
-class Worker(Server):
+class Worker(Secure_server):
     """ Worker node used to calculate the gradient of a model. """
 
     def __init__(self, network=None, log=False, dataset="mnist", model="Simple", batch_size=128, nb_byz_worker=0):
