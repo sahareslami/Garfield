@@ -220,22 +220,19 @@ def set_secure_connetion(host , root_certificate , private_key , certificate_cha
             - messageExchangeStub
         
     """
-    # call_credentials = grpc.metadata_call_credentials(AuthGateway(private_key= private_key),
+    # call_credentials = grpc.metadata_call_credentials(AuthGateway(private_key = private_key),
                                                     #   name='auth gateway')
     
+    channel_credential = grpc.ssl_channel_credentials(
+        root_certificates = root_certificate,
+        private_key = private_key,
+        certificate_chain = certificate_chain
+    )
+
     # channel_credential = grpc.ssl_channel_credentials(
-    #     root_certificates = root_certificate,
-    #     private_key = private_key,
-    #     certificate_chain = certificate_chain
+        # root_certificates = root_certificate
     # )
 
-    channel_credential = grpc.ssl_channel_credentials(
-        root_certificates = root_certificate
-    )
-    options = [
-    ('grpc.ssl_target_name_override' ,  '127.0.0.1') , 
-    ('grpc.default_authority' , '127.0.0.1')
-    ]
     # Combining channel credentials and call credentials together
     # composite_credentials = grpc.composite_channel_credentials(
         # channel_credential,
