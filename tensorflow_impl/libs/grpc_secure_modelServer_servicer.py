@@ -32,26 +32,33 @@
 
 import time
 import grpc
+import numpy as np
 from . import garfield_pb2
 from . import garfield_pb2_grpc
 from . import tools
+import pickle
 from OpenSSL import crypto
 
-
-class MessageExchangeServicer(garfield_pb2_grpc.MessageExchangeServicer):
+class SecureMessageExchangeServicerModelServer(garfield_pb2_grpc.MessageExchangeServicer):
 
     def __init__(self, model_weights):
+        print("SecureMessageExchangeServicerModelServer activated")
         """
             args: 
                 - model_weights: 
+                - workers : list of workers' port
+                - model_server : model server's port
+                - worker_server : worker server's port
         """
 
         self.model_wieghts_history = [model_weights]
-        self.gradients_history = []
+        self.partial_gradient_different = []
+
+
 
 
     def GetModel(self, request, context):
-        
+        print("i don't give a shit")
         """Get the model weights of a specific iteration stored on the server."""
         iter = request.iter
         job = request.job
@@ -75,25 +82,31 @@ class MessageExchangeServicer(garfield_pb2_grpc.MessageExchangeServicer):
 
     def GetGradient(self, request, context):
         """Get the graidents of a specific iteration stored on the server."""
-        print("faaaaz chie")
-        auth_data = context.auth_context()
-        certificate = crypto.load_certificate(crypto.FILETYPE_PEM, auth_data['x509_pem_cert'][0])
         iter = request.iter
         job = request.job
         req_id = request.req_id
 
-        while iter >= len(self.gradients_history):
-            time.sleep(0.001)
+        # check the premission
+        auth_data = context.auth_context()
+        certificate = crypto.load_certificate(crypto.FILETYPE_PEM, auth_data['x509_pem_cert'][0])
+        entrant = certificate.get_subject().organizationName
+
+
+        if entrant == "worker":
+            serialized_gradients = bytes("You don't have the premission to access this data", 'utf-8')
+
+
+        elif entrant == "worker server":
+            while iter >= len(self.partial_gradients_history_worker_server):
+                time.sleep(0.001)
+            serialized_gradients = pickle.dump(self.partial_gradient_different[iter])
         
-        #serialized_gradients = [tools.tensor_to_bytes(grads) for grads in self.gradients_history[iter]]
-        serialized_gradients = self.gradients_history[iter].tobytes()
         return garfield_pb2.Gradients(gradients=serialized_gradients,
                                       iter=iter)
+
 
     def SendGradient(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
-
-        

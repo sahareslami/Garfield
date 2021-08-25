@@ -31,6 +31,9 @@
 #!/usr/bin/env python
 
 import time
+from typing import Counter
+
+from cryptography.x509 import SubjectKeyIdentifier
 
 import numpy as np
 from tensorflow.keras.optimizers import Adam
@@ -40,21 +43,23 @@ from . import tools
 from .seucre_server import Secure_server 
 from .server import Server
 from .new_server import NewServer
-from .grpc_message_exchange_servicer import MessageExchangeServicer
+from .ps import PS
+from .grpc_secure_modelServer_servicer import SecureMessageExchangeServicerModelServer
+import pickle
 
-class PS(NewServer):
+class ModelServer(PS):
     """ Parameter Server node, handles the updates of the parameter of the model. """
 
-    def __init__(self, network=None, log=False, dataset="mnist", model="Small", batch_size=128, nb_byz_worker= 0, is_secure = True , servicer = MessageExchangeServicer):
+    def __init__(self, network=None, log=False, dataset="mnist", model="Small", batch_size=128, nb_byz_worker= 0):
         """ Create a Parameter Server node.
-
+ 
             args:
                 - network:   State of the cluster
                 - log:      Boolean indicating whether to log or not
                 - asyncr:   Boolean
 
         """
-        super().__init__(network, log, dataset, model, batch_size, nb_byz_worker, is_secure , servicer)
+        super().__init__(network, log, dataset, model, batch_size, nb_byz_worker , is_secure= True, servicer= SecureMessageExchangeServicerModelServer)
 
         self.optimizer = Adam(lr=1e-3)
 
@@ -74,19 +79,20 @@ class PS(NewServer):
         for i, connection in enumerate(self.worker_connections):
             counter = 0
             read = False
+            print("model server, in the connection")
             while not read:
+                print("get the responces")
                 try: 
                     response = connection.GetGradient(garfield_pb2.Request(iter=iter,
                                                                         job="ps",
                                                                         req_id=self.task_id))
                     serialized_gradient = response.gradients
                     gradient = np.frombuffer(serialized_gradient, dtype=np.float32)
+                    print(gradient)
                     gradients.append(gradient)
                     read = True
                 except Exception as e:
-                    print("EXCEPTIONNNN ........")
-                    print(e)
-                    print("Trying to connect to Worker node ", i)
+                    print("This is exception" , e)
                     time.sleep(5)
                     counter+=1
                     if counter > 10:			#any reasonable large enough number
@@ -112,3 +118,57 @@ class PS(NewServer):
                 - model: model to commit
         """
         self.service.model_wieghts_history.append(model)
+    
+    def commit_partial_difference(self, gradients_differents):
+        """ Make the partial different computed on model server available to worker server
+
+            Args: 
+                - gradients_differents: partial pariwise differents between gradient
+        """
+
+        self.service.partial_gradient_different.append(gradients_differents)
+        print("this is the length I 've talking about" , len(self.service.partial_gradient_different))
+
+    def compute_final_gradient(self, iter, partial_gradient):
+        """ Compute the final gradient in order to update the model
+
+            Args:
+                - partial gradient collected from workers 
+        """
+
+        counter = 0
+        read = False
+
+        worker_server_address = self.network.get_other_ps()
+        worker_server_connection = [self.ps_connections_dicts[hosts] for hosts in worker_server_address]
+        print("this is worker server connection")
+        print(worker_server_connection)
+        while not read: 
+            print("wtf")
+            for i, connection in enumerate(worker_server_connection):
+                print(i , connection)
+                while not read:
+                    print("hereee")
+                    try:
+                        print("Amin")
+                        response = connection.GetModel(garfield_pb2.Request(iter = iter,
+                                                                    job = "ps",
+                                                                    req_id = self.task_id)) 
+                        print("badesh")
+                        response = connection.GetGradient(garfield_pb2.Request(iter = iter,
+                                                                    job = "worker",
+                                                                    req_id = self.task_id)) 
+                        print("badtaresh")                                  
+                        serialized_model_server_data = response.gradients
+                        worker_server_data = pickle.loads(serialized_model_server_data)
+                        worker_server_gradient, aggregation_weight = worker_server_data[0] , worker_server_data[1]
+                        final_gradient = worker_server_gradient + aggregation_weight * partial_gradient
+                    except Exception as e:
+                        print("this is exception" , e)
+                        time.sleep(5)
+                        counter += 1
+                        if counter > 10:
+                            exit(0)
+
+        return final_gradient
+            

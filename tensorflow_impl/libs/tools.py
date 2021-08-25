@@ -220,24 +220,13 @@ def set_secure_connetion(host , root_certificate , private_key , certificate_cha
             - messageExchangeStub
         
     """
-    # call_credentials = grpc.metadata_call_credentials(AuthGateway(private_key = private_key),
-                                                    #   name='auth gateway')
     
     channel_credential = grpc.ssl_channel_credentials(
         root_certificates = root_certificate,
         private_key = private_key,
         certificate_chain = certificate_chain
     )
-
-    # channel_credential = grpc.ssl_channel_credentials(
-        # root_certificates = root_certificate
-    # )
-
-    # Combining channel credentials and call credentials together
-    # composite_credentials = grpc.composite_channel_credentials(
-        # channel_credential,
-        # call_credentials,
-    # ) 
+    
 
     channel = grpc.secure_channel('localhost' + host[-5:], channel_credential)
     stub = garfield_pb2_grpc.MessageExchangeStub(channel)

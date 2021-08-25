@@ -36,14 +36,15 @@ import tensorflow as tf
 import numpy as np
 
 from .server import Server
-from .seucre_server import Secure_server
+from .new_server import NewServer
+from .grpc_message_exchange_servicer import MessageExchangeServicer
 from . import tools
 
 
-class Worker(Secure_server):
+class Worker(NewServer):
     """ Worker node used to calculate the gradient of a model. """
 
-    def __init__(self, network=None, log=False, dataset="mnist", model="Simple", batch_size=128, nb_byz_worker=0):
+    def __init__(self, network=None, log=False, dataset="mnist", model="Simple", batch_size=128, nb_byz_worker=0, is_secure = True , servicer = MessageExchangeServicer):
         """ Create a Worker node.
 
             args:
@@ -52,7 +53,7 @@ class Worker(Secure_server):
                 - asyncr:   Boolean
 
         """
-        super().__init__(network, log, dataset, model, batch_size, nb_byz_worker)
+        super().__init__(network, log, dataset, model, batch_size, nb_byz_worker, is_secure , servicer)
 
     def compute_gradients(self, iter):
         """ Compute gradients.zz

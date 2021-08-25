@@ -31,21 +31,24 @@
 #!/usr/bin/env python
 
 import time
+from typing import final
 
 import numpy as np
 from tensorflow.keras.optimizers import Adam
+
+import pickle
 
 from . import garfield_pb2
 from . import tools
 from .seucre_server import Secure_server 
 from .server import Server
 from .new_server import NewServer
-from .grpc_message_exchange_servicer import MessageExchangeServicer
+from .grpc_secure_workerServer_servicer import SecureMessageExchangeServicerWorkerServer
 
-class PS(NewServer):
+class WorkerServer(NewServer):
     """ Parameter Server node, handles the updates of the parameter of the model. """
 
-    def __init__(self, network=None, log=False, dataset="mnist", model="Small", batch_size=128, nb_byz_worker= 0, is_secure = True , servicer = MessageExchangeServicer):
+    def __init__(self, network=None, log=False, dataset="mnist", model="Small", batch_size=128, nb_byz_worker= 0):
         """ Create a Parameter Server node.
 
             args:
@@ -54,9 +57,7 @@ class PS(NewServer):
                 - asyncr:   Boolean
 
         """
-        super().__init__(network, log, dataset, model, batch_size, nb_byz_worker, is_secure , servicer)
-
-        self.optimizer = Adam(lr=1e-3)
+        super().__init__(network, log, dataset, model, batch_size, nb_byz_worker, is_secure = True , servicer = SecureMessageExchangeServicerWorkerServer)
 
 
 
@@ -84,31 +85,43 @@ class PS(NewServer):
                     gradients.append(gradient)
                     read = True
                 except Exception as e:
-                    print("EXCEPTIONNNN ........")
-                    print(e)
-                    print("Trying to connect to Worker node ", i)
                     time.sleep(5)
                     counter+=1
                     if counter > 10:			#any reasonable large enough number
                         exit(0)
         return gradients
 
-    def upate_model(self, gradient):
-        """ Update the model with the aggregated gradients. 
+    def compute_final_pairwise_distances(self, partial_difference , iter):
 
-            Args:
-                - gradient: gradient to update the model.
-            Returns:
-                Model after update.        
-        """
-        reshape_gradient = tools.reshape_weights(self.model, gradient)
-        self.optimizer.apply_gradients(zip(reshape_gradient, self.model.trainable_variables))
-        return tools.flatten_weights(self.model.trainable_variables)
+        counter = 0
+        read = False
+        model_server_address = self.network.get_other_ps()
+        model_server_connection = [self.ps_connections_dicts[host] for host in model_server_address]
+        print("this should be worker server address" , model_server_address)
+        while not read:
+            print("enter the compute_final_pairwise_distances")
+            try:
+                for i, connection in enumerate(model_server_connection):
 
-    def commit_model(self, model):
-        """ Make the model available on the network. 
+                    response = connection.GetGradient(garfield_pb2.Request(iter = iter,
+                                                                jobs = "worker" , 
+                                                                req_id = self.task_id))
+                    print("whatttt???")
+                    serialized_model_server_difference = response.gradients
+                    model_server_gradient = pickle.loads(serialized_model_server_difference)
+                    read = True
+            except Exception as e:
+                time.sleep(5)
+                counter += 1
+                if counter > 10:
+                    exit(0)
 
-            Args:
-                - model: model to commit
-        """
-        self.service.model_wieghts_history.append(model)
+        eculidean_distances = np.square(model_server_gradient + partial_difference)
+        return eculidean_distances
+
+    def commit_semi_gradient(self, partial_final_gradient):
+        self.service.partial_final_gradient.append(partial_final_gradient)
+
+
+
+

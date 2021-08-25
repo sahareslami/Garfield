@@ -69,6 +69,23 @@ class Network:
         """
         return self._ps.copy()
 
+    def get_other_ps(self):
+        print("at network")
+        print(self.get_task_type()[:-1])
+        print("-------------------------------------------")
+        if self.get_task_type() != "worker":
+            print(self._ps.copy()[1:])
+            return self._ps.copy()[1:]
+        else:
+            return self._ps.copy()
+
+    def get_other_workers(self):
+        if self.get_task_type() == "worker":
+            return self._ps.copy()[1:]
+        else:
+            return self._ps.copy()
+
+
     def get_all_other_worker(self):
         """
             Return all workers.
@@ -81,10 +98,10 @@ class Network:
 
     def get_my_node(self):
         index = self._data['task']['index']
-        if self.get_task_type() == "ps":
-            return self._ps[index]
-        elif self.get_task_type() == "worker":
+        if self.get_task_type() == "worker":
             return self._worker[index]
+        else:
+            return self._ps[index]
 
     def get_my_port(self):
         return self.get_my_node().split(':')[1]
