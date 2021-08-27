@@ -172,9 +172,16 @@ class NewServer:
             read = False
             while not read:
                 try:
+                    # print("this is port numer" , self.port)
+                    # print("the connection is" , connection)
                     response = connection.GetModel(garfield_pb2.Request(iter=iter,
                                                                 job="worker",
                                                                 req_id=self.task_id))
+                    # print("get model, done")
+                    # responswe = connection.GetGradient(garfield_pb2.Request(iter=iter,
+                                                                # job="ps",
+                                                                # req_id=self.task_id))
+                    # print("get gradient, done")
                     serialized_model = response.model
                     model = np.frombuffer(serialized_model, dtype=np.float32)
                     models.append(model)

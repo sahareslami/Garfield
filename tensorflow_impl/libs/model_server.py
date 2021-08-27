@@ -127,7 +127,9 @@ class ModelServer(PS):
         """
 
         self.service.partial_gradient_different.append(gradients_differents)
+        print("This is service" , self.service)
         print("this is the length I 've talking about" , len(self.service.partial_gradient_different))
+        print("this is id of partial different gradient" , id(self.service.partial_gradient_different))
 
     def compute_final_gradient(self, iter, partial_gradient):
         """ Compute the final gradient in order to update the model
@@ -141,26 +143,20 @@ class ModelServer(PS):
 
         worker_server_address = self.network.get_other_ps()
         worker_server_connection = [self.ps_connections_dicts[hosts] for hosts in worker_server_address]
-        print("this is worker server connection")
         print(worker_server_connection)
         while not read: 
-            print("wtf")
             for i, connection in enumerate(worker_server_connection):
                 print(i , connection)
                 while not read:
-                    print("hereee")
                     try:
-                        print("Amin")
                         response = connection.GetModel(garfield_pb2.Request(iter = iter,
                                                                     job = "ps",
                                                                     req_id = self.task_id)) 
-                        print("badesh")
                         response = connection.GetGradient(garfield_pb2.Request(iter = iter,
                                                                     job = "worker",
                                                                     req_id = self.task_id)) 
-                        print("badtaresh")                                  
                         serialized_model_server_data = response.gradients
-                        worker_server_data = pickle.loads(serialized_model_server_data)
+                        worker_server_data = np.frombuffer(serialized_model_server_data, dtype=np.float32)
                         worker_server_gradient, aggregation_weight = worker_server_data[0] , worker_server_data[1]
                         final_gradient = worker_server_gradient + aggregation_weight * partial_gradient
                     except Exception as e:

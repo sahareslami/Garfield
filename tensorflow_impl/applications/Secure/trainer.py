@@ -140,6 +140,7 @@ def main():
             aggregated_gradient_weight = tools.multi_krum_aggregator(final_pairwise_distances)
             print("shiit thing")
             p.commit_semi_gradient(partial_gradients, aggregated_gradient_weight)
+            print("I am worker server, and I commit the final partial gradient successfully")
             
             tools.training_progression(FLAGS.max_iter, iter, accuracy)
             if iter%50 == 0:

@@ -98,6 +98,7 @@ class SecureMessageExchangeServicerWorker(garfield_pb2_grpc.MessageExchangeServi
             while iter >= len(self.partial_gradients_history_model_server):
                 time.sleep(0.001)
             serialized_gradients = self.partial_gradients_history_model_server[iter].tobytes()
+            print()
         elif entrant == "worker server":
             print("in the servicer , I am worker server")
             while iter >= len(self.partial_gradients_history_worker_server):

@@ -36,7 +36,6 @@ from typing import final
 import numpy as np
 from tensorflow.keras.optimizers import Adam
 
-import pickle
 
 from . import garfield_pb2
 from . import tools
@@ -89,6 +88,7 @@ class WorkerServer(NewServer):
                     counter+=1
                     if counter > 10:			#any reasonable large enough number
                         exit(0)
+        print("this is the size of gradient , after computing gradeint" , gradient.shape)
         return gradients
 
     def compute_final_pairwise_distances(self, partial_difference , iter):
@@ -97,18 +97,22 @@ class WorkerServer(NewServer):
         read = False
         model_server_address = self.network.get_other_ps()
         model_server_connection = [self.ps_connections_dicts[host] for host in model_server_address]
-        print("this should be worker server address" , model_server_address)
+        print("this should be model server address" , model_server_address)
         while not read:
             print("enter the compute_final_pairwise_distances")
             try:
                 for i, connection in enumerate(model_server_connection):
-
-                    response = connection.GetGradient(garfield_pb2.Request(iter = iter,
-                                                                jobs = "worker" , 
-                                                                req_id = self.task_id))
+                    print("the connection" , connection)
+                    response = connection.GetModel(garfield_pb2.Request(iter=iter,
+                                                                job="worker",
+                                                                req_id=self.task_id))
+                    print("be ellat moshkelat fani :))))))))")
+                    responswe = connection.GetGradient(garfield_pb2.Request(iter=iter,
+                                                                job="ps",
+                                                                req_id=self.task_id))
                     print("whatttt???")
                     serialized_model_server_difference = response.gradients
-                    model_server_gradient = pickle.loads(serialized_model_server_difference)
+                    model_server_gradient = np.frombuffer(serialized_model_server_difference, dtype=np.float32)
                     read = True
             except Exception as e:
                 time.sleep(5)

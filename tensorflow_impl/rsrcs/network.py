@@ -70,9 +70,6 @@ class Network:
         return self._ps.copy()
 
     def get_other_ps(self):
-        print("at network")
-        print(self.get_task_type()[:-1])
-        print("-------------------------------------------")
         if self.get_task_type() != "worker":
             print(self._ps.copy()[1:])
             return self._ps.copy()[1:]

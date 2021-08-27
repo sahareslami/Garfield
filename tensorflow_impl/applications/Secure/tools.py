@@ -8,12 +8,13 @@ def divide_gradeint(gradient):
 
 
 def compute_distances(grads):
-    # print("this is distances" , len(grads[0]))
-    distances = np.zeros((len(grads[0]) , len(grads[0])) , np.float)
+
+    distances = np.zeros((len(grads) , len(grads)) , np.float)
 
     for i,a in enumerate(grads):
         for j,b in enumerate(grads):
             distances[i][j] = np.linalg.norm(a-b)
+
     return distances
 
 def multi_krum_aggregator(distances, nbworkers, nbbyzwrks, number_of_gradient):

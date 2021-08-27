@@ -75,7 +75,6 @@ class MessageExchangeServicer(garfield_pb2_grpc.MessageExchangeServicer):
 
     def GetGradient(self, request, context):
         """Get the graidents of a specific iteration stored on the server."""
-        print("faaaaz chie")
         auth_data = context.auth_context()
         certificate = crypto.load_certificate(crypto.FILETYPE_PEM, auth_data['x509_pem_cert'][0])
         iter = request.iter
