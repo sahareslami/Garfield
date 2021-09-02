@@ -85,8 +85,9 @@ def main():
             models = p.get_models(iter)
             p.write_model(models[0])
             gradients = p.get_gradients(iter)
-            print("this is gradient")
+            # print("this is gradient")
             aggregated_gradient = gradient_aggregator.aggregate(gradients)
+            print("this is aggregate gradient" , type(aggregated_gradient) , aggregated_gradient)
             model = p.upate_model(aggregated_gradient)
             p.commit_model(model)
             

@@ -45,7 +45,7 @@ from .grpc_message_exchange_servicer import MessageExchangeServicer
 class PS(NewServer):
     """ Parameter Server node, handles the updates of the parameter of the model. """
 
-    def __init__(self, network=None, log=False, dataset="mnist", model="Small", batch_size=128, nb_byz_worker= 0, is_secure = True , servicer = MessageExchangeServicer):
+    def __init__(self, network=None, log=False, dataset="mnist", model="Small", batch_size=128, nb_byz_worker= 0, is_secure = False , servicer = MessageExchangeServicer):
         """ Create a Parameter Server node.
 
             args:
@@ -84,8 +84,6 @@ class PS(NewServer):
                     gradients.append(gradient)
                     read = True
                 except Exception as e:
-                    print("EXCEPTIONNNN ........")
-                    print(e)
                     print("Trying to connect to Worker node ", i)
                     time.sleep(5)
                     counter+=1

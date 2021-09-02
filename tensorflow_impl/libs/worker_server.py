@@ -88,7 +88,6 @@ class WorkerServer(NewServer):
                     counter+=1
                     if counter > 10:			#any reasonable large enough number
                         exit(0)
-        print("this is the size of gradient , after computing gradeint" , gradient.shape)
         return gradients
 
     def compute_final_pairwise_distances(self, partial_difference , iter):
@@ -97,22 +96,22 @@ class WorkerServer(NewServer):
         read = False
         model_server_address = self.network.get_other_ps()
         model_server_connection = [self.ps_connections_dicts[host] for host in model_server_address]
-        print("this should be model server address" , model_server_address)
+        # print("this should be model server address" , model_server_address)
+
+
         while not read:
-            print("enter the compute_final_pairwise_distances")
+            # print("enter the compute_final_pairwise_distances")
             try:
                 for i, connection in enumerate(model_server_connection):
-                    print("the connection" , connection)
-                    response = connection.GetModel(garfield_pb2.Request(iter=iter,
-                                                                job="worker",
-                                                                req_id=self.task_id))
-                    print("be ellat moshkelat fani :))))))))")
-                    responswe = connection.GetGradient(garfield_pb2.Request(iter=iter,
+                    # print("the connection" , connection)
+                    response = connection.GetGradient(garfield_pb2.Request(iter=iter,
                                                                 job="ps",
                                                                 req_id=self.task_id))
-                    print("whatttt???")
+                                                                
+                    # print("in worker server, succefully get the partial discount")
                     serialized_model_server_difference = response.gradients
                     model_server_gradient = np.frombuffer(serialized_model_server_difference, dtype=np.float32)
+                    # print("in worker server and in compute the final pair wise distances, the gradient from the model server" , model_server_gradient)
                     read = True
             except Exception as e:
                 time.sleep(5)
@@ -121,10 +120,45 @@ class WorkerServer(NewServer):
                     exit(0)
 
         eculidean_distances = np.square(model_server_gradient + partial_difference)
+        # print("the eculidean distances in the worker server" , eculidean_distances)
         return eculidean_distances
 
     def commit_semi_gradient(self, partial_final_gradient):
         self.service.partial_final_gradient.append(partial_final_gradient)
+
+
+    def commit_model(self , iter):
+
+        counter = 0
+        read = False
+
+        model_server_address = self.network.get_other_ps()
+        model_server_connection = [self.ps_connections_dicts[host] for host in model_server_address]
+
+        for i, connection in enumerate(model_server_connection):
+
+            counter = 0
+            read = False
+
+            while not read:
+                try:
+
+                    response = connection.GetModel(garfield_pb2.Request(iter=iter,
+                                                                job="worker",
+                                                                req_id=self.task_id))
+
+                    serialized_model = response.model
+                    model = np.frombuffer(serialized_model, dtype=np.float32)
+                    read = True
+
+                except Exception as e:
+                    print("Trying to connect to PS node ", i)
+                    time.sleep(5)
+                    counter+=1
+                    if counter > 10:			#any reasonable large enough number
+                        exit(0)  
+        
+        self.service.model_wieghts_history.append(model)
 
 
 

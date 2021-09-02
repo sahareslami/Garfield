@@ -79,7 +79,6 @@ class SecureMessageExchangeServicerWorker(garfield_pb2_grpc.MessageExchangeServi
 
     def GetGradient(self, request, context):
         """Get the graidents of a specific iteration stored on the server."""
-        print("just fuck")
         iter = request.iter
         job = request.job
         req_id = request.req_id
@@ -88,24 +87,22 @@ class SecureMessageExchangeServicerWorker(garfield_pb2_grpc.MessageExchangeServi
         auth_data = context.auth_context()
         certificate = crypto.load_certificate(crypto.FILETYPE_PEM, auth_data['x509_pem_cert'][0])
         entrant = certificate.get_subject().organizationName
-        print("This is entrant" , entrant)
+        # print("This is entrant" , entrant)
         if entrant == "worker":
-            print("in the servicer , I am worker")
+            # print("in the servicer , I am worker")
             serialized_gradients = bytes("You don't have the premission to access this data", 'utf-8')
 
         elif entrant == "model server":
-            print("in the servicer , I am model server")
+            # print("in the servicer , I am model server")
             while iter >= len(self.partial_gradients_history_model_server):
                 time.sleep(0.001)
             serialized_gradients = self.partial_gradients_history_model_server[iter].tobytes()
-            print()
         elif entrant == "worker server":
-            print("in the servicer , I am worker server")
+            # print("in the servicer , I am worker server")
             while iter >= len(self.partial_gradients_history_worker_server):
                 time.sleep(0.001)
             serialized_gradients = self.partial_gradients_history_worker_server[iter].tobytes()            
         else:
-            print("fuck")
             serialized_gradients = bytes("Could not authenticate the request", 'utf-8')
 
         return garfield_pb2.Gradients(gradients=serialized_gradients,

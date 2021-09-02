@@ -79,16 +79,14 @@ class ModelServer(PS):
         for i, connection in enumerate(self.worker_connections):
             counter = 0
             read = False
-            print("model server, in the connection")
             while not read:
-                print("get the responces")
                 try: 
                     response = connection.GetGradient(garfield_pb2.Request(iter=iter,
                                                                         job="ps",
                                                                         req_id=self.task_id))
                     serialized_gradient = response.gradients
                     gradient = np.frombuffer(serialized_gradient, dtype=np.float32)
-                    print(gradient)
+                    # print(gradient)
                     gradients.append(gradient)
                     read = True
                 except Exception as e:
@@ -127,9 +125,7 @@ class ModelServer(PS):
         """
 
         self.service.partial_gradient_different.append(gradients_differents)
-        print("This is service" , self.service)
-        print("this is the length I 've talking about" , len(self.service.partial_gradient_different))
-        print("this is id of partial different gradient" , id(self.service.partial_gradient_different))
+
 
     def compute_final_gradient(self, iter, partial_gradient):
         """ Compute the final gradient in order to update the model
@@ -138,33 +134,47 @@ class ModelServer(PS):
                 - partial gradient collected from workers 
         """
 
-        counter = 0
-        read = False
+
 
         worker_server_address = self.network.get_other_ps()
         worker_server_connection = [self.ps_connections_dicts[hosts] for hosts in worker_server_address]
-        print(worker_server_connection)
-        while not read: 
-            for i, connection in enumerate(worker_server_connection):
-                print(i , connection)
-                while not read:
+
+        # print("getting here even make me happy" , worker_server_connection)
+
+        for i, connection in enumerate(worker_server_connection):
+            counter = 0
+            read = False
+            while not read: 
+                    # print("I am enter the while in the compute final gradient successfully")
                     try:
-                        response = connection.GetModel(garfield_pb2.Request(iter = iter,
-                                                                    job = "ps",
-                                                                    req_id = self.task_id)) 
                         response = connection.GetGradient(garfield_pb2.Request(iter = iter,
                                                                     job = "worker",
                                                                     req_id = self.task_id)) 
+                        # print("get the response on compute final gradient succesfully")
                         serialized_model_server_data = response.gradients
-                        worker_server_data = np.frombuffer(serialized_model_server_data, dtype=np.float32)
+                        # print("in the compute final gradient, I get the gradient part")
+                        worker_server_data = pickle.loads(serialized_model_server_data)
+                        # print("in the compute final gradient, I deserialized the data successfully" , worker_server_data)
                         worker_server_gradient, aggregation_weight = worker_server_data[0] , worker_server_data[1]
-                        final_gradient = worker_server_gradient + aggregation_weight * partial_gradient
+                        # print("in the compute final gradient, the data is as below:")
+                        # print("worker server gradient" , worker_server_gradient , len(worker_server_gradient) , type(worker_server_gradient))
+                        # print("aggregation weight is as below" , aggregation_weight, len(aggregation_weight) , type(worker_server_gradient))
+                        final_gradient = worker_server_gradient[0] 
+                        for weight , gradient in zip(aggregation_weight , worker_server_gradient):
+                            # print("this is weight and this is gradient, in model server" , weight , gradient , final_gradient)
+                            if weight == 1:
+                                final_gradient += gradient
+
+                        final_gradient = final_gradient / np.sum(aggregation_weight)
+                        # print("in the compute final gradient, I compute the final gradeint succefully 1", final_gradient)
+                        read = True
+                        
                     except Exception as e:
                         print("this is exception" , e)
                         time.sleep(5)
                         counter += 1
                         if counter > 10:
                             exit(0)
-
+        # print("in the compute final gradient, I compute the final gradeint succefully 1", final_gradient)
         return final_gradient
             

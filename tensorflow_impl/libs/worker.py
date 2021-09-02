@@ -44,7 +44,7 @@ from . import tools
 class Worker(NewServer):
     """ Worker node used to calculate the gradient of a model. """
 
-    def __init__(self, network=None, log=False, dataset="mnist", model="Simple", batch_size=128, nb_byz_worker=0, is_secure = True , servicer = MessageExchangeServicer):
+    def __init__(self, network=None, log=False, dataset="mnist", model="Simple", batch_size=128, nb_byz_worker=0, is_secure = False , servicer = MessageExchangeServicer):
         """ Create a Worker node.
 
             args:

@@ -51,7 +51,7 @@ from . import grpc_message_exchange_servicer
 class NewServer:
     """ Superclass defining a server entity. """
 
-    def __init__(self, network=None, log=False, dataset="mnist", model="Small", batch_size=128, nb_byz_worker=0, is_secure = True , servicer = grpc_message_exchange_servicer.MessageExchangeServicer):
+    def __init__(self, network=None, log=False, dataset="mnist", model="Small", batch_size=128, nb_byz_worker=0, is_secure = False , servicer = grpc_message_exchange_servicer.MessageExchangeServicer):
         self.log = log
 
         self.network = network
@@ -172,16 +172,10 @@ class NewServer:
             read = False
             while not read:
                 try:
-                    # print("this is port numer" , self.port)
-                    # print("the connection is" , connection)
                     response = connection.GetModel(garfield_pb2.Request(iter=iter,
                                                                 job="worker",
                                                                 req_id=self.task_id))
-                    # print("get model, done")
-                    # responswe = connection.GetGradient(garfield_pb2.Request(iter=iter,
-                                                                # job="ps",
-                                                                # req_id=self.task_id))
-                    # print("get gradient, done")
+
                     serialized_model = response.model
                     model = np.frombuffer(serialized_model, dtype=np.float32)
                     models.append(model)
@@ -192,7 +186,7 @@ class NewServer:
                     counter+=1
                     if counter > 10:			#any reasonable large enough number
                         exit(0)
-            
+
         return models
 
     def write_model(self, model):

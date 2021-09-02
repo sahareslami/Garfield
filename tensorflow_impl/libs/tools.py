@@ -160,7 +160,6 @@ def set_connection(host):
         returns:
             Stub
     """
-    print("in secure connection, host name: " , 'localhost' + host[-5:])
     channel = grpc.insecure_channel('localhost' + host[-5:], options=[('grpc.max_send_message_length', -1)
                                     , ('grpc.max_receive_message_length', -1)])
     stub = garfield_pb2_grpc.MessageExchangeStub(channel)

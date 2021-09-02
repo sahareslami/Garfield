@@ -75,14 +75,13 @@ class MessageExchangeServicer(garfield_pb2_grpc.MessageExchangeServicer):
 
     def GetGradient(self, request, context):
         """Get the graidents of a specific iteration stored on the server."""
-        auth_data = context.auth_context()
-        certificate = crypto.load_certificate(crypto.FILETYPE_PEM, auth_data['x509_pem_cert'][0])
         iter = request.iter
         job = request.job
         req_id = request.req_id
 
         while iter >= len(self.gradients_history):
             time.sleep(0.001)
+        
         
         #serialized_gradients = [tools.tensor_to_bytes(grads) for grads in self.gradients_history[iter]]
         serialized_gradients = self.gradients_history[iter].tobytes()

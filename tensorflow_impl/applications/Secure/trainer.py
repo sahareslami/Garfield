@@ -34,13 +34,14 @@ import argparse
 import pickle
 import time
 import os
+import numpy as np
 import sys
 
 
 from libs.worker import Worker
 from libs.ps import PS
 from libs.byz_worker import ByzWorker
-from libs import tools
+from libs import tools as gadget
 
 from libs.secure_worker import SecureWorker
 from libs.model_server import ModelServer
@@ -68,23 +69,56 @@ def main():
             w = SecureWorker(n, FLAGS.log, FLAGS.dataset, FLAGS.model, FLAGS.batch_size, FLAGS.nbbyzwrks)
         w.start()
         model_aggregator = Aggregator_tf(n.get_model_strategy(), len(n.get_all_workers()), FLAGS.nbbyzwrks, FLAGS.native)
-        print("why--------------------------------------------------------")
+
         for iter in range(FLAGS.max_iter+1):
-            print("starting the worker")
+            print("I am worker and starting the worker" , iter)
             models = w.get_models(iter)
-            print("What hapeeend?????????????")
+            # print("I am worker and I got the model successfully" , iter)
             aggregated_model = model_aggregator.aggregate(models)
             w.write_model(aggregated_model)
-            print("can I write it?")
+            # print("I am worker and I write the model" , iter)
             loss, grads = w.compute_gradients(iter)
-            print("this is whole gradient", grads)
+            # print("I am worker and I compute the gradient, yay ", iter, "\n",  grads)
             partial_grads = tools.divide_gradeint(grads)
-            print("this is partial gradinet", partial_grads)
-            print("first one" , partial_grads[0])
-            print("second one" , partial_grads[1])
+            # print("I am worker and I divide the gradient successfully", iter , partial_grads)
+            # print("first one:" , iter , "\n" , partial_grads[0] , len(partial_grads[0]) , partial_grads[0].dtype.name)
+            # print("second one:" , iter, "\n" ,  partial_grads[1], len(partial_grads[1]) , partial_grads[1].dtype.name)
             w.commit_gradients(partial_grads)
-            print("commit done succefully")
+            # print("I am worker and commit done succefully:" , iter)
         w.stop(1)
+
+
+    elif n.get_task_type() == 'ws':
+        print("I am worker server, and I am here")
+        p = WorkerServer(n, FLAGS.log, FLAGS.dataset, FLAGS.model, FLAGS.batch_size, FLAGS.nbbyzwrks)
+        p.start()
+
+        gradient_aggregator = Aggregator_tf(n.get_gradient_strategy(), len(n.get_all_workers()), FLAGS.nbbyzwrks, FLAGS.native)
+
+        accuracy = 0
+        for iter in range(FLAGS.max_iter):
+            print("worker server, I am here" , iter)
+            models = p.get_models(iter)
+            # print("I am worker server, and I get the model successfully" , iter)
+            p.write_model(models[0])
+            # print("I am worker server, and the model write succefully" , iter)
+            partial_gradients = p.get_gradients(iter)
+            # print("I am worker server , and I got the partial gradients" , iter)
+            partial_pairwise_distances = tools.compute_distances(partial_gradients)
+            # print("I am worker server, and partial pairwise disntance compute successfully" , partial_pairwise_distances, partial_pairwise_distances.dtype.name)
+            final_pairwise_distances = p.compute_final_pairwise_distances(partial_pairwise_distances, iter)
+            # print("I am worker server, and final pairwise disntance compute successfully", iter , "\n" , final_pairwise_distances)
+            aggregated_gradient_weight = tools.multi_krum_aggregator(final_pairwise_distances , 1 , 0 , 1)
+            # print("I am worker server, and aggregate the " ,iter)
+            # print("I am worker server and this is the aggregate gradient weight" , aggregated_gradient_weight , type(aggregated_gradient_weight))
+            # print("I am worker server and this is the partial gradient for worker server" , partial_gradients , type(partial_gradients))
+            
+
+            # print("I am worker server and this is what should be commited" , np.array((partial_gradients , aggregated_gradient_weight)))
+            p.commit_semi_gradient(np.array((partial_gradients , aggregated_gradient_weight)))
+            # print("I am worker server, and I commit the final partial gradient successfully" , iter)
+            p.commit_model(iter)
+            
 
     elif n.get_task_type() == 'ms':
         print("I am model server, and I am here")
@@ -95,59 +129,31 @@ def main():
 
         accuracy = 0
         for iter in range(FLAGS.max_iter):
-            print("model server, I am here")
+            print("I am model server, I am here:" , iter)
             models = p.get_models(iter)
             p.write_model(models[0])
-            print("this is ms and before getting gradient")
+            # print("I am model server and before getting gradient:" , iter)
             partial_gradients = p.get_gradients(iter)
-            print("after getting gradeint", partial_gradients)
+            # print("I am model server and it's after getting gradeint:", iter , partial_gradients)
             partial_pairwise_distances = tools.compute_distances(partial_gradients)
-            print("this is distances:" , partial_pairwise_distances)
+            # print("I am model server and it's my distances" , partial_pairwise_distances)
+            # print("I am model server and this is distances:" , iter, partial_pairwise_distances)
             p.commit_partial_difference(partial_pairwise_distances)
-            print("after commiting partial difference")
+            # print("I am model server and after commiting partial difference:" , iter)
             final_gradient = p.compute_final_gradient(iter , partial_gradients)
-            print("I got the final gradient")
+            # print("I am model server and I got the final gradient:" , iter)
             model = p.upate_model(final_gradient)
+            # print("I am model server, and I update the model perfectly fine")
             p.commit_model(model)
+            # print("I am model server, and I commit the model succefully")
             
-            tools.training_progression(FLAGS.max_iter, iter, accuracy)
-            if iter%50 == 0:
-                accuracy = p.compute_accuracy()
-
-        print("\nTraining done!")
-        p.stop(1)
-    
-    elif n.get_task_type() == 'ws':
-        print("I am worker server, and I am here")
-        p = WorkerServer(n, FLAGS.log, FLAGS.dataset, FLAGS.model, FLAGS.batch_size, FLAGS.nbbyzwrks)
-        p.start()
-
-        gradient_aggregator = Aggregator_tf(n.get_gradient_strategy(), len(n.get_all_workers()), FLAGS.nbbyzwrks, FLAGS.native)
-
-        accuracy = 0
-        for iter in range(FLAGS.max_iter):
-            print("worker server, I am here")
-            models = p.get_models(iter)
-            print("I am worker server, and I get the model successfully")
-            p.write_model(models[0])
-            print("I am worker server, and the model write succefully")
-            partial_gradients = p.get_gradients(iter)
-            print("I am worker server , and I got the partial gradients")
-            partial_pairwise_distances = tools.compute_distances(partial_gradients)
-            print("I am worker server, and partial pairwise disntance compute successfully")
-            final_pairwise_distances = p.compute_final_pairwise_distances(partial_pairwise_distances, iter)
-            print("I am worker server, and final pairwise disntance compute successfully")
-            aggregated_gradient_weight = tools.multi_krum_aggregator(final_pairwise_distances)
-            print("shiit thing")
-            p.commit_semi_gradient(partial_gradients, aggregated_gradient_weight)
-            print("I am worker server, and I commit the final partial gradient successfully")
-            
-            tools.training_progression(FLAGS.max_iter, iter, accuracy)
+            gadget.training_progression(FLAGS.max_iter, iter, accuracy)
             if iter%50 == 0:
                 accuracy = p.compute_accuracy()
  
         print("\nTraining done!")
         p.stop(1)
+
     else:
         print("Unknown task type, please check TF_CONFIG file")
         exit(0)
