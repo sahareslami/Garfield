@@ -30,6 +30,7 @@
 
 #!/usr/bin/env python
 
+import pickle
 import time
 from typing import final
 
@@ -110,7 +111,7 @@ class WorkerServer(NewServer):
                                                                 
                     # print("in worker server, succefully get the partial discount")
                     serialized_model_server_difference = response.gradients
-                    model_server_gradient = np.frombuffer(serialized_model_server_difference, dtype=np.float32)
+                    model_server_gradient = pickle.loads(serialized_model_server_difference)
                     # print("in worker server and in compute the final pair wise distances, the gradient from the model server" , model_server_gradient)
                     read = True
             except Exception as e:

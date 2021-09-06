@@ -139,7 +139,7 @@ class ModelServer(PS):
         worker_server_address = self.network.get_other_ps()
         worker_server_connection = [self.ps_connections_dicts[hosts] for hosts in worker_server_address]
 
-        # print("getting here even make me happy" , worker_server_connection)
+        # print("getting here even make me happy" , worker_server_address)
 
         for i, connection in enumerate(worker_server_connection):
             counter = 0
@@ -159,8 +159,15 @@ class ModelServer(PS):
                         # print("in the compute final gradient, the data is as below:")
                         # print("worker server gradient" , worker_server_gradient , len(worker_server_gradient) , type(worker_server_gradient))
                         # print("aggregation weight is as below" , aggregation_weight, len(aggregation_weight) , type(worker_server_gradient))
-                        final_gradient = worker_server_gradient[0] 
-                        for weight , gradient in zip(aggregation_weight , worker_server_gradient):
+                        final_gradient = worker_server_gradient
+                        # print("tjkglkgkldfjglksdj",  worker_server_gradient)
+                        # print("tjkglkgkldfjglksdj",  partial_gradient)
+                        # if(iter == 0):
+                            # with open('worker_server_gradient_in_model_Server.pickle', 'wb') as handle:
+                                # pickle.dump(worker_server_gradient , handle)
+                            # with open('model_server_gradient_in_model_Server.pickle' , 'wb') as handle:
+                                # pickle.dump(partial_gradient, handle)
+                        for weight , gradient in zip(aggregation_weight , partial_gradient):
                             # print("this is weight and this is gradient, in model server" , weight , gradient , final_gradient)
                             if weight == 1:
                                 final_gradient += gradient

@@ -33,3 +33,15 @@ def multi_krum_aggregator(distances, nbworkers, nbbyzwrks, number_of_gradient):
     np.put(gar_weight , idx, 1)
     # print("finaly and hopefully this is gar weight" , gar_weight)
     return gar_weight
+
+
+def compute_weighted_gradient(partial_gradient , aggregation_weight):
+    # print("in tools, partial gradients" , type(partial_gradient) , len(partial_gradient) , partial_gradient)
+    weighted_gradient = np.zeros(len(partial_gradient[0]))
+    for weight , gradient in zip(aggregation_weight , partial_gradient):
+        # print("this is weight and this is gradient, in model server" , weight , gradient , final_gradient)
+        if weight == 1:
+            weighted_gradient += gradient
+    # print("this issss theeee enddddd" , weighted_gradient)
+    return weighted_gradient
+    

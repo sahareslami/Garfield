@@ -94,7 +94,7 @@ class SecureMessageExchangeServicerModelServer(garfield_pb2_grpc.MessageExchange
         certificate = crypto.load_certificate(crypto.FILETYPE_PEM, auth_data['x509_pem_cert'][0])
         entrant = certificate.get_subject().organizationName
 
-        print("this is enterrrrrrrant" , entrant)
+        # print("this is enterrrrrrrant" , entrant)
         serialized_gradients = bytes("unathurized member is trying to connect" , 'utf-8')
         if entrant == "worker":
             serialized_gradients = bytes("You don't have the premission to access this data", 'utf-8')
@@ -105,13 +105,13 @@ class SecureMessageExchangeServicerModelServer(garfield_pb2_grpc.MessageExchange
             # print("this is id of list in the model server servicer" , id(self.partial_gradient_different), "and the iteration number is:" , iter) 
             while iter >= len(self.partial_gradient_different):
                 time.sleep(0.001)
-            print("did I pass this fucking stupid while")
+            # print("did I pass this fucking stupid while")
             # print("the size is" , sys.getsizeof(self.partial_gradient_different[iter]))
             # print("the length of array" , self.partial_gradient_different[iter].shape)
             
-            serialized_gradients = self.partial_gradient_different[iter].tobytes()  
-            print("in model server servicer, the distances is " , self.partial_gradient_different[iter]) 
-            print("in model server and the type is :" , self.partial_gradient_different[iter].dtype.name)  
+            serialized_gradients = pickle.dumps(self.partial_gradient_different[iter])
+            # print("in model server servicer, the distances is " , self.partial_gradient_different[iter]) 
+            # print("in model server and the type is :" , self.partial_gradient_different[iter].dtype.name)  
             # print("in model server servicer, desrialized the disntaces" , np.frombuffer(serialized_gradients, dtype=np.float64))       
             # print("finallllyyy I can get it")
 

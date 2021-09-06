@@ -71,7 +71,6 @@ class Network:
 
     def get_other_ps(self):
         if self.get_task_type() != "worker":
-            print(self._ps.copy()[1:])
             return self._ps.copy()[1:]
         else:
             return self._ps.copy()
