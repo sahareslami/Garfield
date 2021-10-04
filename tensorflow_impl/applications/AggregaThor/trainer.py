@@ -41,10 +41,11 @@ from libs.worker import Worker
 from libs.ps import PS
 from libs.byz_worker import ByzWorker
 from libs import tools
-
+import pandas as pd
 from rsrcs.aggregator_tf.aggregator import Aggregator_tf
 
 from rsrcs.network import Network
+import time
 
 # Allowing visualization of the log while the process is running over ssh
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1)
@@ -54,6 +55,7 @@ FLAGS = None
 
 
 def main():
+    start = time.time()
     n = Network(FLAGS.config)
 
     if n.get_task_type() == 'worker':
@@ -69,12 +71,13 @@ def main():
             aggregated_model = model_aggregator.aggregate(models)
             w.write_model(aggregated_model)
             loss, grads = w.compute_gradients(iter)
-            print("this is gradeint" , grads)
+            # print("this is gradeint" , grads)
             w.commit_gradients(grads)
 
         w.stop(1)
 
     elif n.get_task_type() == 'ps':
+        accuraies = []
         p = PS(n, FLAGS.log, FLAGS.dataset, FLAGS.model, FLAGS.batch_size, FLAGS.nbbyzwrks)
         p.start()
 
@@ -87,19 +90,24 @@ def main():
             gradients = p.get_gradients(iter)
             # print("this is gradient")
             aggregated_gradient = gradient_aggregator.aggregate(gradients)
-            print("this is aggregate gradient" , type(aggregated_gradient) , aggregated_gradient)
+            # print("this is aggregate gradient" , type(aggregated_gradient) , aggregated_gradient)
             model = p.upate_model(aggregated_gradient)
             p.commit_model(model)
             
             tools.training_progression(FLAGS.max_iter, iter, accuracy)
             if iter%50 == 0:
                 accuracy = p.compute_accuracy()
+                accuraies.append(accuracy)
 
         print("\nTraining done!")
         p.stop(1)
     else:
         print("Unknown task type, please check TF_CONFIG file")
         exit(0)
+
+    print(time.time() - start)
+    df = pd.DataFrame(accuraies)
+    df.to_csv("accuraies.csv")
 
 
 if __name__ == "__main__":

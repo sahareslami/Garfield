@@ -1,7 +1,7 @@
 #!/bin/bash
 
-
-common="cd /Users/applestore/Desktop/Garfield/mine/Garfield/tensorflow_impl/applications/Secure"
+pwd=`pwd`
+common="cd $pwd"
 common="$common && /usr/local/bin/python3 trainer.py --log True --max_iter 1000 --batch_size 126"
 
 #/usr/local/bin/python3
